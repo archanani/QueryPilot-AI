@@ -1,90 +1,153 @@
-QueryPilot AI – Multi‑Agent Data Intelligence System
+# QueryPilot AI — Multi‑Agent Data Intelligence System
 
-Overview
-QueryPilot AI is a multi‑agent AI system that answers complex user questions by combining structured database data and real‑time web information.
+## Overview
 
-Instead of relying on a single model, the system uses specialized AI agents that collaborate to produce insights.
+QueryPilot AI is a modular multi-agent system that answers complex user questions by combining structured database queries and real‑time web information. Agents collaborate: a SQL Agent fetches structured data, a Web Search Agent fetches recent web content, and an Analysis Agent combines both sources to produce insights.
 
-Example:
-User Query: "Get Tesla revenue and latest news"
+Example user flow:
+1. User: "Get Tesla revenue and latest news"
+2. SQL Agent: Query the database for Tesla revenue
+3. Web Search Agent: Retrieve recent Tesla news
+4. Analysis Agent: Merge results and generate a summarized insight
 
-System Process:
-1. SQL Agent queries the database for Tesla revenue
-2. Web Search Agent retrieves recent Tesla news
-3. Analysis Agent combines both results and produces insights
+## Architecture
 
-This project demonstrates how LLMs can orchestrate multiple tools to solve real‑world data intelligence problems.
-Architecture
 User Query
-   │
-   ▼
-Router / Main Controller
- ├── SQL Agent → Fetch structured data from database
- ├── Web Search Agent → Retrieve latest web information
- └── Analysis Agent → Combine both sources and generate insights
+   └─ Router / Main Controller
+       ├─ SQL Agent → structured DB queries (MySQL)
+       ├─ Web Search Agent → web information (search APIs)
+       └─ Analysis Agent → aggregate & explain results
 
-Tech Stack
-• Python
-• LangChain
-• Groq LLM (Llama 3.1)/ OpenAI GPT‑4
-• MySQL
-• SQLAlchemy
-• Multi‑Agent Architecture
-• dotenv for environment management
+## Tech Stack
+- Python 3.9+
+- LangChain
+- Groq LLM (Llama 3.1) or OpenAI (configurable)
+- MySQL + SQLAlchemy
+- dotenv for environment variable loading
 
-Features
-• Natural language to SQL query generation
-• Real‑time web information retrieval
-• Multi‑agent collaboration
-• AI‑generated insights from multiple data sources
-• Modular and scalable architecture
+## Features
+- Natural language → SQL query generation
+- Real-time web retrieval for recent events
+- Multi-agent orchestration and analysis
+- Modular structure: easily swap agents or LLMs
 
-Example Query
+## Quick Example
 Query:
+
 Get Tesla revenue and latest news
-Example Output
-Tesla reported approximately $96.77B revenue in 2023.
-Recent news indicates Tesla continues expanding EV production globally.
-![img.png](img.png)
 
+Sample output (illustrative):
 
-Insights:
-Tesla’s financial growth aligns with increasing demand in the electric vehicle market and ongoing expansion into new regions.
-Installation
-1. Clone the repository
-git clone https://github.com/archanani/querypilot-ai
+Tesla reported approximately $96.77B revenue in 2023. Recent news indicates Tesla continues expanding EV production globally. Insights: Tesla’s financial growth aligns with demand for EVs and international expansion.
 
-2. Navigate to the project
-cd querypilot-ai
+---
 
-3. Create virtual environment
-python -m venv venv
+## Installation (Windows / PowerShell)
 
-4. Activate environment
-Windows:
-venv\Scripts\activate
+Open PowerShell and run the following from the project root (the folder that contains `src`):
 
-5. Install dependencies
+1. Create and activate a virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+(If you use cmd.exe instead of PowerShell, run `.venv\Scripts\activate.bat`.)
+
+2. Install dependencies
+
+```powershell
+pip install --upgrade pip
 pip install -r requirements.txt
-Environment Variables
-Create a .env file and add the following:
+```
 
+## Environment variables
+
+Create a `.env` file in the project root with the required configuration. Example:
+
+```env
 GROQ_API_KEY=your_groq_api_key
 MYSQL_USER=your_mysql_user
 MYSQL_PASSWORD=your_mysql_password
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DB=db_name
-Run the Project
-Run the application from the project root:
+MYSQL_DB=your_database_name
+```
 
+Notes:
+- Do not commit `.env` to source control. Use a secrets manager for production.
+- The README and code assume these names; adjust in code if you rename them.
+
+## Running the project
+
+Run the main application from the project root so Python has package context:
+
+```powershell
 python -m src.main
-Future Improvements
-• Add Router Agent for intelligent tool selection
-• Integrate LangGraph for agent orchestration
-• Add vector search for knowledge retrieval
-• Build a Streamlit UI dashboard
-• Add real‑time streaming responses
+```
 
+Run a specific agent (recommended: run as a module so relative imports work):
 
-This project demonstrates practical implementation of multi‑agent AI systems using modern LLM 
+```powershell
+python -m src.agents.sql_agent
+python -m src.agents.web_search_agent
+```
+
+Avoid executing source files directly like `python src\agents\sql_agent.py` because relative imports may fail that way; use `-m` or ensure the project root is on `PYTHONPATH`.
+
+## Troubleshooting (common issues and fixes)
+
+1. ImportError: attempted relative import with no known parent package
+- Cause: running the file directly (no package context).
+- Fix: run as a module: `python -m src.agents.sql_agent`
+
+2. Import errors in the IDE but not in terminal
+- Cause: IDE is using a different interpreter / venv than your terminal.
+- Fix:
+  - In PyCharm / IntelliJ: File > Settings > Project > Python Interpreter — set to the same interpreter shown by `python -c "import sys; print(sys.executable)"` in your terminal.
+  - Mark `src/` as a Sources Root (right-click `src` > Mark Directory as > Sources Root).
+  - Invalidate caches / restart IDE (File > Invalidate Caches / Restart).
+
+3. `PromptTemplate` or LangChain import problems
+- LangChain has changed package layout across versions. Try these imports in a Python REPL to see what works with your installed version:
+
+```python
+from langchain.prompts import PromptTemplate
+# or
+from langchain_core.prompts import PromptTemplate
+```
+
+If they fail, ensure you installed LangChain in the interpreter your IDE/terminal uses:
+
+```powershell
+pip install -U langchain
+```
+
+4. Type-checker yellow warnings (static/type warnings)
+- These are warnings from your IDE's type checker (not always runtime errors). Common causes:
+  - Type mismatch between what's passed and the function signature (example: SQLDatabase vs SQLDatabaseToolkit).
+  - Missing type stubs or dynamically generated API surface the analyzer can’t introspect.
+- Fixes:
+  - Use the correct object expected by the API (create a SQLDatabaseToolkit when required).
+  - Add `# type: ignore` to lines where the type system is too strict.
+  - Configure your type checker (Pyright / mypy) or update the package that provides type stubs.
+
+## Development tips
+- When adding or testing code that uses relative imports, prefer `python -m package.module` from the project root.
+- Keep secrets (API keys) out of source control; use `.env` for local dev and a secure store for production.
+- If a new dependency causes import failures in the IDE, double-check the interpreter and reinstall packages into that environment.
+
+## Next steps and improvements
+- Add a router agent to orchestrate which tool(s) to call per query.
+- Integrate LangGraph or a similar orchestration layer.
+- Add vector search and a small Streamlit UI for interactive usage.
+
+---
+
+If you want, I can also:
+- Add a simple `run.sh` / `run.ps1` to simplify common commands.
+- Add a `requirements.txt` or update it if you want me to pin versions.
+- Add a short CONTRIBUTING.md with development workflow.
+
+If you want any of those, tell me which and I’ll add them.
